@@ -5,6 +5,7 @@ import time
 
 import cv2
 import tensorflow as tf
+import numpy as np
 
 from . import feeding_queue_runner as queue_runner
 from .dataset import Dataset
@@ -32,7 +33,8 @@ class DataFromFNames(Dataset):
         nthreads (int): Parallel threads for reading from data.
         return_fnames (bool): If True, data_pipeline will also return fnames
             (last tensor).
-        filetype (str): Currently only support image.
+        filetype (str): Originally only support image. We add npy as new
+            save type for spectrogram.
 
     Examples:
         >>> fnames = ['img001.png', 'img002.png', ..., 'img999.png']
@@ -156,6 +158,16 @@ class DataFromFNames(Dataset):
             img = self.fn_preprocess(img)
         return img, False
 
+    def read_npy(self, filename):
+        img = np.load(filename)
+        if img is None:
+            print('image is None, sleep this thread for 0.1s.')
+            time.sleep(0.1)
+            return img, True
+        if self.fn_preprocess:
+            img = self.fn_preprocess(img)
+        return img, False
+
     def next_batch(self):
         batch_data = []
         for _ in range(self.enqueue_size):
@@ -172,12 +184,27 @@ class DataFromFNames(Dataset):
                 random_h = None
                 random_w = None
                 for i in range(len(filenames)):
-                    img, error = self.read_img(filenames[i])
+                    if self.filetype == 'image':
+                        img, error = self.read_img(filenames[i])
+                    elif self.filetype == 'npy':
+                        img, error = self.read_npy(filenames[i])
+                    else:
+                        raise ValueError('Type error for filetype.')
                     if self.random_crop:
                         img, random_h, random_w = np_random_crop(
                             img, tuple(self.shapes[i][:-1]),
                             random_h, random_w, align=False)  # use last rand
                     else:
+                        ''' # Might have bugs but not yet tracing now due to useless.
+                        if len(img.shape) == 3:
+                            img = cv2.resize(
+                                img, tuple(self.shapes[i][:-1][::-1]))
+                        elif len(img.shape) == 2:
+                            img = cv2.resize(
+                                img, tuple(self.shapes[i][:][::-1]))
+                        else:
+                            raise ValueError('Type error for filetype.')
+                        '''
                         img = cv2.resize(img, tuple(self.shapes[i][:-1][::-1]))
                     imgs.append(img)
             if self.return_fnames:
