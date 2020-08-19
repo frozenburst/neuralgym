@@ -34,7 +34,7 @@ class DataFromFNames(Dataset):
         return_fnames (bool): If True, data_pipeline will also return fnames
             (last tensor).
         filetype (str): Originally only support image. We add npy as new
-            save type for spectrogram.
+            save type for spectrogram. Bug the filetype here cannot be passed in.
 
     Examples:
         >>> fnames = ['img001.png', 'img002.png', ..., 'img999.png']
@@ -67,7 +67,7 @@ class DataFromFNames(Dataset):
     def __init__(self, fnamelists, shapes, random=False, random_crop=False,
                  fn_preprocess=None, dtypes=tf.float32,
                  enqueue_size=32, queue_size=256, nthreads=16,
-                 return_fnames=False, filetype='image'):
+                 return_fnames=False, filetype='npy'):
         self.fnamelists_ = self.process_fnamelists(fnamelists)
         self.file_length = len(self.fnamelists_)
         self.random = random
@@ -152,6 +152,7 @@ class DataFromFNames(Dataset):
         img = cv2.imread(filename)
         if img is None:
             print('image is None, sleep this thread for 0.1s.')
+            print(filename)
             time.sleep(0.1)
             return img, True
         if self.fn_preprocess:
@@ -161,7 +162,8 @@ class DataFromFNames(Dataset):
     def read_npy(self, filename):
         img = np.load(filename)
         if img is None:
-            print('image is None, sleep this thread for 0.1s.')
+            print('npy of image is None, sleep this thread for 0.1s.')
+            print(filename)
             time.sleep(0.1)
             return img, True
         if self.fn_preprocess:
