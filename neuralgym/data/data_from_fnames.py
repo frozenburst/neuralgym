@@ -208,6 +208,9 @@ class DataFromFNames(Dataset):
                             raise ValueError('Type error for filetype.')
                         '''
                         img = cv2.resize(img, tuple(self.shapes[i][:-1][::-1]))
+                        # Resize might squeeze the last channel with 1. Added it back.
+                        if len(img.shape) < 3:
+                            img = img[:, :, np.newaxis]
                     imgs.append(img)
             if self.return_fnames:
                 batch_data.append(imgs + list(filenames))
